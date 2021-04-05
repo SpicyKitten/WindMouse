@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import windmouse.Movement.Type;
+import windmouse.Action.Type;
 
 public class WindMouse
 {
@@ -19,12 +19,12 @@ public class WindMouse
 	private static Robot robot;
 	private Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
-	public Stream<Movement> moveMouse(int x, int y, int rx, int ry)
+	public Stream<Action> moveMouse(int x, int y, int rx, int ry)
 	{
 		return this.moveMouse(x, y, rx, ry, 1.44, 1.6);
 	}
 
-	public Stream<Movement> moveMouse(int x, int y, int rx, int ry, double minSpeed,
+	public Stream<Action> moveMouse(int x, int y, int rx, int ry, double minSpeed,
 		double maxSpeed)
 	{
 		x += random.nextInt(rx);
@@ -39,7 +39,7 @@ public class WindMouse
 			return Stream.empty();
 		}
 		var randomSpeed = random.nextDouble(minSpeed, maxSpeed);
-		var firstMovement = Optional.<Stream<Movement>>empty();
+		var firstMovement = Optional.<Stream<Action>>empty();
 		if(Math.hypot(x - startPos.x(), y - startPos.y()) > 170 && Math.random() < 0.23)
 		{
 			double dX = x - startPos.x();
@@ -55,19 +55,19 @@ public class WindMouse
 			dY = magnitude * Math.sin(direction);
 			var destX = Math.max(0, Math.min(startPos.x() + dX, this.screenSize.width - 1));
 			var destY = Math.max(0, Math.min(startPos.y() + dY, this.screenSize.height - 1));
-			var movements = this
+			var actions = this
 				.windMouseImpl(startPos.x(), startPos.y(), destX, destY, 9.0, 4.0,
 					10.0 / randomSpeed, 15.0 / randomSpeed, 10.0 * randomSpeed, 10.0 * randomSpeed)
 				.collect(Collectors.toList());
-			if(movements.size() > 0)
+			if(actions.size() > 0)
 			{
-				for(var movement : movements)
+				for(var action : actions)
 				{
-					startPos = movement.type() == Type.MOUSE_MOVEMENT ? movement.destination()
+					startPos = action.type() == Type.MOVEMENT ? action.destination()
 						: startPos;
 				}
 			}
-			firstMovement = Optional.of(movements.stream());
+			firstMovement = Optional.of(actions.stream());
 			randomSpeed = randomSpeed > (minSpeed + maxSpeed) / 2.0
 				? random.nextDouble(minSpeed, randomSpeed)
 				: random.nextDouble(randomSpeed, maxSpeed);
@@ -103,13 +103,13 @@ public class WindMouse
 	 * @param targetArea
 	 *            Radius of area around the destination that should trigger
 	 *            slowing, prevents spiraling
-	 * @result The actual end point
+	 * @result The sequence of actions executed during the mouse movement
 	 */
-	private Stream<Movement> windMouseImpl(double xNow, double yNow, double xEnd, double yEnd,
+	private Stream<Action> windMouseImpl(double xNow, double yNow, double xEnd, double yEnd,
 		double gravity, double wind, double minWait, double maxWait, double maxStep,
 		double targetArea)
 	{
-		Stream.Builder<Movement> builder = Stream.builder();
+		Stream.Builder<Action> builder = Stream.builder();
 		double dist, veloX = 0, veloY = 0, windX = 0, windY = 0;
 		var cx = (int) xNow;
 		var cy = (int) yNow;
@@ -158,11 +158,11 @@ public class WindMouse
 			{
 				cx = mx;
 				cy = my;
-				builder.add(new Movement(mx, my));
+				builder.add(new Action(mx, my));
 			}
 			var step = Math.hypot(xNow - cx, yNow - cy);
 			var delay = Math.round((maxWait - minWait) * (step / maxStep) + minWait);
-			builder.add(new Movement(delay));
+			builder.add(new Action(delay));
 		}
 		return builder.build();
 	}
@@ -184,12 +184,12 @@ public class WindMouse
 		}
 	}
 
-	public void execute(Movement movement)
+	public void execute(Action action)
 	{
-		if(movement.type() == Type.MOUSE_MOVEMENT)
+		if(action.type() == Type.MOVEMENT)
 		{
-			var x = movement.destination().x();
-			var y = movement.destination().y();
+			var x = action.destination().x();
+			var y = action.destination().y();
 			if(x < 0 || y < 0 || x >= this.screenSize.width || y >= this.screenSize.height)
 			{
 				x = Math.max(0, Math.min(x, this.screenSize.width - 1));
@@ -207,9 +207,9 @@ public class WindMouse
 			{
 			}
 		}
-		else if(movement.type() == Type.DELAY)
+		else if(action.type() == Type.DELAY)
 		{
-			this.sleep(movement.delay());
+			this.sleep(action.delay());
 		}
 	}
 }
