@@ -3,6 +3,8 @@
  */
 module windmouse
 {
+	exports windmouse;
+
 	requires transitive java.desktop;
 	requires org.junit.jupiter.api;
 }
