@@ -167,7 +167,7 @@ public class WindMouse
 		return builder.build();
 	}
 
-	private Point getMousePos()
+	public Point getMousePos()
 	{
 		var currentMousePos = MouseInfo.getPointerInfo().getLocation();
 		return new Point(currentMousePos.x, currentMousePos.y);
